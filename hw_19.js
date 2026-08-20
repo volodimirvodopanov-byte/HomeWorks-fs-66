@@ -1,44 +1,58 @@
 let myArray = [1, 5, 2, 9, 4];
-function binarySearch(myArray, searchValue) {
+
+function bubbleSort(myArrayToSort) {
+  let unsortedLength = myArrayToSort.length; // граница неотсортированной части
+
+  while (unsortedLength > 1) {
+    let lastSwapIndex = 0; // позиция последнего обмена за проход
+
+    for (let j = 0; j < unsortedLength - 1; j++) {
+      // сравниваем текущий элемент со следующим
+      if (myArrayToSort[j] > myArrayToSort[j + 1]) {
+        // меняем местами через деструктуризацию — без временной переменной
+        [myArrayToSort[j], myArrayToSort[j + 1]] = [
+          myArrayToSort[j + 1],
+          myArrayToSort[j],
+        ];
+        lastSwapIndex = j + 1; // запоминаем, докуда доходил беспорядок
+      }
+    }
+
+    // всё правее последнего обмена уже на своих местах — сужаем границу сразу до неё.
+    // если обменов не было, lastSwapIndex останется 0 и цикл закончится сам
+    unsortedLength = lastSwapIndex;
+  }
+
+  return myArrayToSort;
+}
+
+function binarySearch(myArrayToSearch, searchValue) {
   let left = 0;
-  let right = myArray.length - 1;
+  let right = myArrayToSearch.length - 1;
 
   while (left <= right) {
-    let middle = Math.floor((left + right) / 2); // средний индекс с помощью методы math.floor
-    // если использовать Math.round (округление к ближайшему) или Math.ceil (округление вверх),
-    // при определённых значениях left и right алгоритм может зациклиться —
-    // mid будет каждый раз указывать на одну и ту же границу, и left/right никогда не сойдутся.
-    // Math.floor гарантированно не даёт такой проблемы — это стандартная, проверенная договорённость в алгоритме бинарного поиска
+    // Math.floor — конвенция: при чётной длине берём левую из двух середин.
+    // зацикливания здесь не будет ни при каком округлении, потому что обе ветки
+    // сдвигают границу ЗА middle (+1 / -1) и исключают его из следующего диапазона
+    let middle = Math.floor((left + right) / 2);
 
-    if (myArray[middle] === searchValue) {
+    if (myArrayToSearch[middle] === searchValue) {
       return middle; // нашли — возвращаем индекс
-    } else if (myArray[middle] < searchValue) {
+    } else if (myArrayToSearch[middle] < searchValue) {
       left = middle + 1; // искомое больше — сдвигаем левую границу вправо
     } else {
       right = middle - 1; // искомое меньше — сдвигаем правую границу влево
     }
   }
+
   return -1;
 }
 
-// внешний цикл — сколько раз повторяем весь проход
-for (let i = 0; i < myArray.length; i++) {
-  // внутренний цикл — один проход: сравниваем каждую пару соседей
-  for (let j = 0; j < myArray.length - 1; j++) {
-    // сравниваем текущий элемент со следующим
-    if (myArray[j] > myArray[j + 1]) {
-      // если левый больше правого — меняем их местами
-      let temp = myArray[j];
-      myArray[j] = myArray[j + 1];
-      myArray[j + 1] = temp; // temp временная переменная в середине цикла
-    }
-  }
-}
-
-console.log(myArray); // отсортированый массив после более 1 прохода в внутренем и внешнем цикле
+bubbleSort(myArray);
+console.log(myArray); // отсортированный массив
 
 let index = binarySearch(myArray, 9); // вернул 4 — верно, это его индекс в отсортированном массиве
 console.log(index);
 
-let index2 = binarySearch(myArray, 100); // проверка несуществующего индекса
+let index2 = binarySearch(myArray, 100); // проверка несуществующего значения
 console.log(index2);
