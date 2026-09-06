@@ -1,20 +1,80 @@
 // Программа запрашивает наименование продуктов в вашем холодильнике
 // и их количество. После ввода всех продуктов, программа выводит список
-// продуктов с их количеством и сохраняет данные в виде JSON в
+// продуктов с их количеством и сохраняет данные в виде CSV в
 // файл в корне проекта.
-// readline.createInterface() используется для создания интерфейса
-// чтения данных из стандартного ввода (stdin) и записи данных в
-// стандартный вывод (stdout).
-
-// JSON.stringify(fridge, null, 2 ) используется для преобразования
-// объекта JavaScript в строку JSON,
-// где null означает, что не используется функция замены replacer,
-// а 2 указывает на количество пробелов для отступа в формате JSON.
 
 import readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { writeFile, readFile } from "node:fs/promises";
 import path from "node:path";
+
+// --- Экранирование одного CSV-поля (RFC 4180) ---
+function escapeCsvField(value) {
+  const str = String(value);
+  const needsQuoting =
+    str.includes(",") || str.includes('"') || str.includes("\n");
+
+  if (!needsQuoting) {
+    return str;
+  }
+
+  const escaped = str.replaceAll('"', '""');
+  return `"${escaped}"`;
+}
+
+// --- Сборка CSV-строки из массива продуктов ---
+function fridgeToCsv(fridge) {
+  const header = "Наименование,Количество";
+  const rows = fridge.map(
+    (product) =>
+      `${escapeCsvField(product.name)},${escapeCsvField(product.count)}`,
+  );
+  return [header, ...rows].join("\n");
+}
+
+// --- Разбор одной CSV-строки обратно в массив полей (с учётом кавычек) ---
+function parseCsvLine(line) {
+  const fields = [];
+  let current = "";
+  let insideQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+
+    if (insideQuotes) {
+      if (char === '"' && line[i + 1] === '"') {
+        current += '"'; // экранированная кавычка внутри поля
+        i++; // пропускаем вторую кавычку пары
+      } else if (char === '"') {
+        insideQuotes = false;
+      } else {
+        current += char;
+      }
+    } else {
+      if (char === '"') {
+        insideQuotes = true;
+      } else if (char === ",") {
+        fields.push(current);
+        current = "";
+      } else {
+        current += char;
+      }
+    }
+  }
+  fields.push(current);
+  return fields;
+}
+
+// --- Разбор всего CSV-файла обратно в массив объектов { name, count } ---
+function csvToFridge(csvContent) {
+  const lines = csvContent.split("\n").filter((line) => line.trim() !== "");
+  const dataLines = lines.slice(1); // пропускаем заголовок
+
+  return dataLines.map((line) => {
+    const [name, count] = parseCsvLine(line);
+    return { name, count: Number(count) };
+  });
+}
 
 async function runFridgeApp() {
   const rl = readline.createInterface({ input, output });
@@ -29,14 +89,12 @@ async function runFridgeApp() {
     const name = await rl.question("Введите наименование продукта: ");
     const trimmedName = name.trim();
 
-    // --- Пункт 2: несколько стоп-слов, без учёта регистра ---
     const exitWords = ["exit", "выход", "стоп", "stop"];
     if (exitWords.includes(trimmedName.toLowerCase())) {
       break;
     }
 
     if (trimmedName === "") {
-      // Проверка на пустую строку
       console.log(
         "Наименование продукта не может быть пустым. Попробуйте снова.",
       );
@@ -46,15 +104,27 @@ async function runFridgeApp() {
     const countInput = await rl.question(
       `Введите количество продукта "${trimmedName}": `,
     );
-    const count = Number(countInput.trim()); // "12ю5" -->> NaN
+    const trimmedCount = countInput.trim();
+
+    // Number("") === 0, а не NaN — поэтому пустую строку проверяем отдельно,
+    // до преобразования в число
+    if (trimmedCount === "") {
+      console.log("Количество не может быть пустым. Попробуйте снова.");
+      continue;
+    }
+
+    const count = Number(trimmedCount);
 
     if (Number.isNaN(count)) {
       console.log("Количество введено некорректно. Попробуйте снова.");
       continue;
     }
 
-    // Ищем, есть ли уже такой продукт в массиве
-    const idx = fridge.findIndex((product) => product.name === trimmedName);
+    // Сравнение без учёта регистра: "Хлеб" и "хлеб" — один и тот же продукт.
+    // При этом само название в массиве сохраняем как ввёл пользователь.
+    const idx = fridge.findIndex(
+      (product) => product.name.toLowerCase() === trimmedName.toLowerCase(),
+    );
 
     if (idx !== -1 && count === 0) {
       fridge.splice(idx, 1);
@@ -65,6 +135,10 @@ async function runFridgeApp() {
         `Количество продукта "${trimmedName}" обновлено:`,
         fridge[idx],
       );
+    } else if (count === 0) {
+      // Новый продукт с нулевым количеством — добавлять нечего и нечего удалять
+      console.log(`Продукта "${trimmedName}" нет в списке, нечего удалять.`);
+      continue;
     } else {
       fridge.push({ name: trimmedName, count });
       console.log("Продукт добавлен:", { name: trimmedName, count });
@@ -74,31 +148,24 @@ async function runFridgeApp() {
     console.table(fridge);
   }
 
-  rl.close(); // Закрываем интерфейс readline после завершения ввода данных
+  rl.close();
 
   if (fridge.length > 0) {
-    const filePath = path.resolve("fridge.json"); // Путь к файлу в корне проекта
+    const filePath = path.resolve("fridge.csv");
     try {
-      // 1. Сохраняем данные в файл
-      await writeFile(filePath, JSON.stringify(fridge, null, 2), "utf-8");
+      const csvContent = fridgeToCsv(fridge);
+      await writeFile(filePath, csvContent, "utf-8");
       console.log(`Данные о продуктах сохранены в файл: ${filePath}`);
 
-      // 2. Читаем данные из файла
       console.log("Считываем данные из файла...");
       const fileData = await readFile(filePath, "utf-8");
-      console.log("Данные из файла:", fileData);
+      console.log("Данные из файла (CSV):\n", fileData);
 
-      // 3. Преобразуем данные из JSON в объект JavaScript
-      const saveProducts = JSON.parse(fileData);
-      console.log("Данные из файла (объект):", saveProducts);
+      const savedProducts = csvToFridge(fileData);
+      console.log("Данные из файла (объект):", savedProducts);
 
-      // 4. Выводим список продуктов с их количеством красиво
-      console.log("1. Список продуктов в холодильнике:");
-      saveProducts.forEach((product) => {
-        console.log(`- ${product.name}: ${product.count}`);
-      });
-      console.log("2. Список продуктов в холодильнике:");
-      console.table(saveProducts);
+      console.log("Список продуктов в холодильнике:");
+      console.table(savedProducts);
     } catch (error) {
       console.error("Ошибка при работе с файлом:", error.message);
     }
@@ -108,9 +175,3 @@ async function runFridgeApp() {
 }
 
 runFridgeApp();
-
-/*
-1.ADV. САМОСТОЯТЕЛЬНО ИЗУЧИТЬ
-Переделайте программу так, чтобы она сохраняла данные в CSV файл (такая возможность есть в Экселе)
-в корне проекта вместо JSON файла.
-*/
