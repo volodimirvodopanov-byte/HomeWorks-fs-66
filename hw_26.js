@@ -151,11 +151,15 @@ async function main() {
         continue;
       }
 
-      // Ошибка сети или сервера здесь остановит всю программу!!!
-      const temperature = await getTemperature(
-        person.latitude,
-        person.longitude,
-      );
+      // Сбой погоды у одного пользователя не должен обрывать обработку
+      // остальных, поэтому ловим ошибку здесь, а не в общем catch
+      let temperature;
+      try {
+        temperature = await getTemperature(person.latitude, person.longitude);
+      } catch (error) {
+        console.warn(`Пользователь id=${person.id} пропущен: ${error.message}`);
+        continue;
+      }
 
       people.push({ ...person, temperature });
     }
@@ -167,6 +171,8 @@ async function main() {
     const hottest = findHottestUser(people);
     printUser(hottest);
   } catch (error) {
+    // Сюда попадают только ошибки, после которых продолжать нечем:
+    // не получен список пользователей
     console.error("Ошибка при получении данных:", error.message);
   }
 }
