@@ -1,1 +1,4 @@
 node_modules/
+.env
+fridge.json
+shopping-list.json
