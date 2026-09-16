@@ -10,10 +10,10 @@ import { GoogleGenAI } from "@google/genai";
 
 const FRIDGE_FILE = path.resolve("fridge.json");
 const SHOPPING_FILE = path.resolve("shopping-list.json");
-const AI_MODEL = "gemini-3.6-flash";
-const MAX_LOGIN_ATTEMPTS = 3;
+const AI_MODEL = "gemini-3.6-flash"; // вынес наверх в константу, чтобы было проще менять модель
+const MAX_LOGIN_ATTEMPTS = 3; // magic number
 
-// ===================== Имитация БД пользователей =====================
+// ======= Имитация баз данных пользователей ===========
 // Пароли открытым текстом — ТОЛЬКО для учебного примера.
 
 const users = [
@@ -57,7 +57,7 @@ const ACTIONS = [
   "orderProducts",
 ];
 
-const USER_FORBIDDEN_ACTIONS = ["removeFromShoppingList", "orderProducts"];
+const USER_FORBIDDEN_ACTIONS = ["removeFromShoppingList", "orderProducts"]; // таблица прав доступа для роли USER
 
 function can(user, action) {
   if (!ACTIONS.includes(action)) {
