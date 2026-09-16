@@ -252,7 +252,7 @@ ${dishText}
 async function askAi(prompt) {
   if (!process.env.GEMINI_API_KEY) {
     throw new Error(
-      "Не найден GEMINI_API_KEY. Запустите: node --env-file=.env smartFridge.js",
+      "Не найден GEMINI_API_KEY. Запустите: node --env-file=.env hw_27.js",
     );
   }
 
