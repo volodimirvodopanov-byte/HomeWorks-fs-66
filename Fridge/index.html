@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Умный холодильник</title>
+
+  <style>
+    :root {
+      --ink: #23201c;
+      --muted: #6f6659;
+      --line: #d8d0c4;
+      --paper: #faf8f4;
+      --accent: #2f6b4f;
+      --alarm: #a33b2a;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 2rem 1rem;
+      background: var(--paper);
+      color: var(--ink);
+      font: 16px/1.55 Georgia, "Times New Roman", serif;
+    }
+
+    .page {
+      max-width: 38rem;
+      margin: 0 auto;
+    }
+
+    h1 {
+      margin: 0 0 .25rem;
+      font-size: 1.75rem;
+      font-weight: normal;
+    }
+
+    .subtitle {
+      margin: 0 0 2rem;
+      color: var(--muted);
+      font-size: .95rem;
+    }
+
+    .field {
+      margin-bottom: 1rem;
+    }
+
+    label {
+      display: block;
+      margin-bottom: .3rem;
+      font-size: .9rem;
+      color: var(--muted);
+    }
+
+    input {
+      width: 100%;
+      padding: .6rem .7rem;
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      background: #fff;
+      font: inherit;
+      color: inherit;
+    }
+
+    input:focus,
+    button:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+    }
+
+    button {
+      padding: .6rem 1.4rem;
+      border: none;
+      border-radius: 3px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      background: var(--muted);
+      cursor: default;
+    }
+
+    .role-badge {
+      margin: 1.25rem 0 .5rem;
+      font-size: .9rem;
+      color: var(--muted);
+    }
+
+    /* <pre> по умолчанию не переносит строки и меняет шрифт на моноширинный.
+       pre-wrap сохраняет переносы из ответа AI и переносит длинные строки. */
+    .result {
+      min-height: 4rem;
+      margin: 0;
+      padding: 1rem;
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      background: #fff;
+      font: inherit;
+      white-space: pre-wrap;
+    }
+
+    .result:empty {
+      display: none;
+    }
+
+    /* ===== Модальное окно <dialog> ===== */
+
+    .modal {
+      max-width: 26rem;
+      padding: 1.5rem;
+      border: none;
+      border-top: 4px solid var(--alarm);
+      border-radius: 3px;
+      background: #fff;
+      color: var(--ink);
+    }
+
+    /* Затемнение страницы под открытым окном (только для showModal) */
+    .modal::backdrop {
+      background: rgba(35, 32, 28, .45);
+    }
+
+    .modal__title {
+      margin: 0 0 .6rem;
+      font-size: 1.15rem;
+      color: var(--alarm);
+    }
+
+    .modal__text {
+      margin: 0 0 1.25rem;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="page">
+    <h1>Умный холодильник</h1>
+    <p class="subtitle">Представьтесь и назовите блюдо — посмотрим, что скажет AI.</p>
+
+    <form id="searchForm">
+      <div class="field">
+        <label for="userName">Имя пользователя</label>
+        <input id="userName" name="userName" type="text" placeholder="John или Bill" autocomplete="off">
+      </div>
+
+      <div class="field">
+        <label for="dishTitle">Название блюда</label>
+        <input id="dishTitle" name="dishTitle" type="text" placeholder="борщ" autocomplete="off">
+      </div>
+
+      <button id="searchButton" type="submit">Искать</button>
+    </form>
+
+    <p class="role-badge" id="roleBadge"></p>
+    <pre class="result" id="result"></pre>
+  </main>
+
+  <dialog class="modal" id="errorModal" aria-labelledby="errorTitle">
+    <h2 class="modal__title" id="errorTitle">Ошибка</h2>
+    <p class="modal__text" id="errorMessage"></p>
+    <button type="button" id="closeModal">Закрыть</button>
+  </dialog>
+
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
