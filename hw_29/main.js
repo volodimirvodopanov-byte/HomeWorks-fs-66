@@ -55,7 +55,7 @@ const { form, input, list, errorMessage, showButton, listButton } =
 function hasProduct(productName) {
   const newName = productName.trim().toLowerCase();
   for (const li of list.querySelectorAll("li")) {
-    const existingName = li.textContent.trim().toLowerCase();
+    const existingName = li.dataset.name.trim().toLowerCase();
     if (newName === existingName) {
       return true;
     }
@@ -63,15 +63,22 @@ function hasProduct(productName) {
   return false;
 }
 
-function addProduct(productName) {
+function addProduct(rawName) {
+  const productName = String(rawName ?? "").trim();
+
+  if (productName === "") {
+    return "empty";
+  }
+
   if (hasProduct(productName)) {
-    return false;
+    return "duplicate";
   }
 
   const li = document.createElement("li");
   li.textContent = productName;
+  li.dataset.name = productName;
   list.append(li);
-  return true;
+  return "added";
 }
 
 function addProductsFromArray(products) {
@@ -82,12 +89,13 @@ function addProductsFromArray(products) {
 
 function handleSubmit(e) {
   e.preventDefault();
-  const productName = input.value.trim();
-  if (!productName) {
+  const status = addProduct(input.value);
+
+  if (status === "empty") {
     return;
   }
 
-  if (!addProduct(productName)) {
+  if (status === "duplicate") {
     errorMessage.textContent = "Продукт с таким названием уже существует!";
     return;
   }
@@ -108,3 +116,22 @@ function handleAddFromList() {
 form.addEventListener("submit", handleSubmit);
 showButton.addEventListener("click", handleShowList);
 listButton.addEventListener("click", handleAddFromList);
+// Один обработчик на весь список: работает и для продуктов, добавленных позже.
+// Клик по продукту добавляет надпись «куплено», повторный клик убирает её.
+list.addEventListener("click", (e) => {
+  const li = e.target.closest("li");
+  if (!li) {
+    return;
+  }
+
+  const mark = li.querySelector(".mark");
+
+  if (mark) {
+    mark.remove();
+  } else {
+    const newMark = document.createElement("span");
+    newMark.className = "mark";
+    newMark.textContent = " — куплено";
+    li.append(newMark);
+  }
+});
