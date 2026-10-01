@@ -92,6 +92,7 @@ function handleSubmit(e) {
   const status = addProduct(input.value);
 
   if (status === "empty") {
+    errorMessage.textContent = "Введите название продукта";
     return;
   }
 
@@ -106,10 +107,12 @@ function handleSubmit(e) {
 }
 
 function handleShowList() {
+  errorMessage.textContent = "";
   addProductsFromArray(productsV2);
 }
 
 function handleAddFromList() {
+  errorMessage.textContent = "";
   addProductsFromArray(productsV3);
 }
 
