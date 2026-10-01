@@ -19,6 +19,8 @@ const MAX_LOGIN_ATTEMPTS = 3; // magic number
 const users = [
   { login: "alex", password: "1111", name: "Alex", role: "USER" },
   { login: "john", password: "2222", name: "John", role: "ADMIN" },
+  { login: "anna", password: "4444", name: "Anna", role: "USER" },
+  { login: "mike", password: "5555", name: "Mike", role: "ADMIN" },
 ];
 
 // ===================== Работа с JSON =====================
@@ -35,7 +37,7 @@ async function readFromJsonFile(filePath, defaultValue) {
     return JSON.parse(fileData);
   } catch (error) {
     if (error.code === "ENOENT") {
-      return defaultValue; // файла нет — это нормально при первом запуске
+      return defaultValue; // файла нет при первом запуске
     }
     if (error instanceof SyntaxError) {
       throw new Error(`Файл ${filePath} повреждён: внутри не JSON.`);
@@ -57,16 +59,20 @@ const ACTIONS = [
   "orderProducts",
 ];
 
-const USER_FORBIDDEN_ACTIONS = ["removeFromShoppingList", "orderProducts"]; // таблица прав доступа для роли USER
+const USER_FORBIDDEN_ACTIONS = ["removeFromShoppingList", "orderProducts"]; // права доступа для роли USER (без пп. 7–8: удаление из списка покупок и заказ)
 
 function can(user, action) {
+  // Первая проверка: неизвестное действие запрещено.
+  // Синтаксис ! переворачивает ответ: если действия нет в списке, возвращаем false
   if (!ACTIONS.includes(action)) {
-    return false; // неизвестное действие — запрещено
+    return false;
   }
   if (user.role === "ADMIN") {
     return true; // админ может всё
   }
   if (user.role === "USER") {
+    // Если действие есть в списке запретов, includes даст true, а ! превратит в false — нельзя.
+    // Если действия в запретах нет, false превратится в true — можно.
     return !USER_FORBIDDEN_ACTIONS.includes(action);
   }
   return false; // неизвестная роль — доступ запрещён по умолчанию
@@ -75,18 +81,21 @@ function can(user, action) {
 // ===================== Аутентификация =====================
 
 function authenticate(loginInput, passwordInput) {
-  const login = loginInput.trim().toLowerCase();
+  const normalizedLogin = loginInput.trim().toLowerCase();
   return (
-    users.find((u) => u.login === login && u.password === passwordInput) ?? null
+    users.find(
+      (u) => u.login === normalizedLogin && u.password === passwordInput,
+    ) ?? null
   );
 }
 
 async function login(rl) {
   for (let attempt = 1; attempt <= MAX_LOGIN_ATTEMPTS; attempt++) {
-    const loginInput = await rl.question("Логин: ");
-    const passwordInput = await rl.question("Пароль: ");
+    const loginInput = await rl.question("Login: ");
+    const passwordInput = await rl.question("Password: ");
     const user = authenticate(loginInput, passwordInput);
 
+    // Если пользователь найден, выводим приветствие и возвращаем его объект
     if (user) {
       console.log(`\nПривет, ${user.name}! Роль: ${user.role}\n`);
       return user;
