@@ -2,6 +2,8 @@ import { ROLES } from "./config.js";
 
 export function createBasePromptByRole(user) {
   if (user.role === ROLES.ADMIN) {
+    // Ответ Admin программа разбирает через JSON.parse,
+    // поэтому формат ответа задан жёстко: только JSON-массив строк.
     return `
         Ты - квалифицированный повар, определяющий ингредиенты
         блюда по названию блюда. 
@@ -13,7 +15,11 @@ export function createBasePromptByRole(user) {
         Правила:
             -возвращай только список продуктов, которые нужно закупить.
             -не возвращай продукты, не имеющие отношения к данному блюду.
-            -не возвращай продукты, которые уже есть в холодильнике.        
+            -не возвращай продукты, которые уже есть в холодильнике.
+            -ответ верни строго в виде JSON-массива строк,
+             например: ["Морковь", "Капуста"].
+            -не добавляй пояснений, markdown и любого другого текста.
+            -если докупать ничего не нужно, верни пустой массив [].
         `;
   }
   if (user.role === ROLES.USER) {
@@ -45,8 +51,8 @@ export function formatProductsForPrompt(products) {
 }
 
 export function createPrompt(basePrompt, dishTitle, products) {
-  // String(... ?? "") защищает от undefined: без него .trim() уронил бы
-  // программу с невнятным TypeError вместо понятного сообщения.
+  // String(... ?? "") защищает от undefined:
+  // без него .trim() падает с TypeError вместо сообщения.
   const title = String(dishTitle ?? "").trim();
 
   if (title === "") {

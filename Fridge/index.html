@@ -107,6 +107,31 @@
       display: none;
     }
 
+    /* ===== Список продуктов (Вариант 4) ===== */
+
+    .products-title {
+      margin: 2rem 0 .5rem;
+      font-size: 1.15rem;
+      font-weight: normal;
+    }
+
+    .products {
+      margin: 0;
+      padding-left: 1.4rem;
+    }
+
+    /* Продукты, добавленные по ответу AI.
+       Пометка в ::after не попадает в textContent, поэтому не мешает сравнению. */
+    .product--new {
+      color: var(--accent);
+    }
+
+    .product--new::after {
+      content: " — купить";
+      color: var(--muted);
+      font-size: .9rem;
+    }
+
     /* ===== Модальное окно <dialog> ===== */
 
     .modal {
@@ -140,7 +165,7 @@
 <body>
   <main class="page">
     <h1>Умный холодильник</h1>
-    <p class="subtitle">Представьтесь и назовите блюдо — посмотрим, что скажет AI.</p>
+    <p class="subtitle">Представьтесь и назовите блюдо — недостающие продукты добавятся в список.</p>
 
     <form id="searchForm">
       <div class="field">
@@ -153,11 +178,14 @@
         <input id="dishTitle" name="dishTitle" type="text" placeholder="борщ" autocomplete="off">
       </div>
 
-      <button id="searchButton" type="submit">Искать</button>
+      <button id="searchButton" type="submit">Найти недостающие</button>
     </form>
 
     <p class="role-badge" id="roleBadge"></p>
     <pre class="result" id="result"></pre>
+
+    <h2 class="products-title">Список продуктов</h2>
+    <ul class="products" id="productList"></ul>
   </main>
 
   <dialog class="modal" id="errorModal" aria-labelledby="errorTitle">
