@@ -3,27 +3,123 @@ import { getAuthenticatedUser } from "./authService.js";
 import { FRIDGE_FILE, USERS_FILE, ROLES } from "./config.js";
 import { createBasePromptByRole, createPrompt } from "./promptService.js";
 import { askAi } from "./aiService.js";
+import { parseProductList } from "./productService.js";
+import { runCopyExperiment } from "./copyExperiment.js";
 import {
-  normalizeProductName,
-  getUniqueProducts,
-  parseProductList,
-} from "./productService.js";
+  getVisibleProducts,
+  getCurrentFilter,
+  isDraftMode,
+  addProduct,
+  addMissingProducts,
+  toggleProduct,
+  filterProducts,
+  createDraft,
+  saveDraft,
+  cancelDraft,
+} from "./state.js";
+import {
+  renderProducts,
+  renderCategoryOptions,
+  renderFilterButtons,
+  renderDraftControls,
+  showRole,
+  showResult,
+  showError,
+} from "./render.js";
+import {
+  addForm,
+  productNameInput,
+  categorySelect,
+  filtersBlock,
+  createDraftButton,
+  saveDraftButton,
+  cancelDraftButton,
+  productList,
+  searchForm,
+  userNameInput,
+  dishTitleInput,
+  searchButton,
+  errorModal,
+  closeModalButton,
+} from "./dom.js";
 
-// ===================== Элементы страницы =====================
+// main.js — только связка: слушает события, вызывает state.js, потом рендер.
+// Схема из ТЗ: изменение массива -> рендер -> DOM.
 
-const form = document.getElementById("searchForm");
-const userNameInput = document.getElementById("userName");
-const dishTitleInput = document.getElementById("dishTitle");
-const searchButton = document.getElementById("searchButton");
-const roleBadge = document.getElementById("roleBadge");
-const result = document.getElementById("result");
-const productList = document.getElementById("productList");
+// Перерисовать всё, что зависит от состояния.
+// Вызывается после ЛЮБОГО изменения данных.
+function updateView() {
+  renderProducts(getVisibleProducts());
+  renderFilterButtons(getCurrentFilter());
+  renderDraftControls(isDraftMode());
+}
 
-const errorModal = document.getElementById("errorModal");
-const errorMessage = document.getElementById("errorMessage");
-const closeModal = document.getElementById("closeModal");
+// ===================== Список покупок =====================
 
-// ===================== Вспомогательные функции =====================
+function handleAddProduct(event) {
+  event.preventDefault();
+
+  try {
+    addProduct(productNameInput.value, categorySelect.value);
+
+    productNameInput.value = "";
+    productNameInput.focus();
+    updateView();
+  } catch (error) {
+    showError(error.message);
+  }
+}
+
+// Делегирование: один обработчик на весь <ul> вместо обработчика на каждый <li>.
+// Клик по <li> или по <span> внутри него всплывает до <ul>.
+// Это обязательно, а не только красиво: renderProducts каждый раз создаёт
+// новые <li>, и обработчики на старых пропадали бы вместе с ними.
+function handleProductClick(event) {
+  // closest найдёт <li> с data-id, даже если кликнули по <span> внутри.
+  // Строку «список пуст» (без data-id) он не найдёт — тогда выходим.
+  const item = event.target.closest("li[data-id]");
+
+  if (!item) {
+    return;
+  }
+
+  try {
+    // dataset всегда возвращает строку, а id в массиве — числа.
+    toggleProduct(Number(item.dataset.id));
+    updateView();
+  } catch (error) {
+    showError(error.message);
+  }
+}
+
+// Тоже делегирование: один обработчик на блок с тремя кнопками.
+function handleFilterClick(event) {
+  const button = event.target.closest("button[data-filter]");
+
+  if (!button) {
+    return;
+  }
+
+  filterProducts(button.dataset.filter);
+  updateView();
+}
+
+function handleCreateDraft() {
+  createDraft();
+  updateView();
+}
+
+function handleSaveDraft() {
+  saveDraft();
+  updateView();
+}
+
+function handleCancelDraft() {
+  cancelDraft();
+  updateView();
+}
+
+// ===================== Помощник AI =====================
 
 function validateInput(userName, dishTitle) {
   if (!userName) {
@@ -35,96 +131,41 @@ function validateInput(userName, dishTitle) {
   }
 }
 
-function showError(message) {
-  errorMessage.textContent = message;
-  errorModal.showModal();
-}
-
-// ==== Список продуктов на странице =====
-
-//  ТЗ: «Есть ли такой продукт уже на странице?»
-// Сравниваем названия
-function isProductOnPage(productName) {
-  const key = normalizeProductName(productName);
-  const items = [...productList.children];
-
-  return items.some((li) => normalizeProductName(li.textContent) === key);
-}
-
-function createProductItem(productName, isNew) {
-  const li = document.createElement("li");
-  li.textContent = productName;
-
-  if (isNew) {
-    // Пометка «купить» рисуется в CSS через ::after,
-    // поэтому в textContent она не попадает и сравнению не мешает.
-    li.classList.add("product--new");
-  }
-
-  return li;
-}
-
-// ЕДИНОЕ правило добавления для любых источников
-// (продукты холодильника при загрузке и ответ Gemini):
-// убрать дубли -> оставить только отсутствующие -> добавить в DOM.
-// Возвращает массив реально добавленных продуктов.
-function addMissingProducts(productNames, isNew = false) {
-  const uniqueProducts = getUniqueProducts(productNames);
-  const missingProducts = uniqueProducts.filter(
-    (productName) => !isProductOnPage(productName),
-  );
-
-  for (const productName of missingProducts) {
-    productList.append(createProductItem(productName, isNew));
-  }
-
-  return missingProducts;
-}
-
-// При открытии страницы показываем, что уже есть в холодильнике.
-async function showFridgeProducts() {
-  const products = await readFromJsonFile(FRIDGE_FILE);
-
-  if (!Array.isArray(products)) {
-    throw new Error("Список продуктов повреждён: ожидался массив.");
-  }
-
-  addMissingProducts(products.map((product) => product.name));
-}
-
-// ===================== Логика =====================
-
 // Весь путь от имени и блюда до ответа AI.
 // Возвращает пользователя (нужна его роль) и текст ответа.
 async function searchDish(userName, dishTitle) {
   const users = await readFromJsonFile(USERS_FILE);
   const authenticatedUser = getAuthenticatedUser(users, userName);
 
-  roleBadge.textContent = `${authenticatedUser.name} — роль ${authenticatedUser.role}`;
+  showRole(authenticatedUser);
 
-  const products = await readFromJsonFile(FRIDGE_FILE);
+  // fridge.json — то, что уже лежит в холодильнике. Он нужен только для промта:
+  // список покупок на странице — это отдельные данные в state.js.
+  const fridgeProducts = await readFromJsonFile(FRIDGE_FILE);
 
   // Для роли GUEST эта функция бросит ошибку — её поймает catch в handleSearch.
   const basePrompt = createBasePromptByRole(authenticatedUser);
-  const prompt = createPrompt(basePrompt, dishTitle, products);
+  const prompt = createPrompt(basePrompt, dishTitle, fridgeProducts);
 
   const answer = await askAi(prompt);
 
   return { user: authenticatedUser, answer };
 }
 
-// Вариант 4: Admin получает список недостающих и дописывает их в список на странице.
+// ADMIN: ответ разбираем и добавляем недостающие продукты в список покупок.
+// Сначала массив (addMissingProducts), потом рендер — как и везде.
 function showAdminResult(answer) {
-  const productNames = parseProductList(answer);
-  const addedProducts = addMissingProducts(productNames, true);
+  const items = parseProductList(answer);
+  const addedProducts = addMissingProducts(items);
 
-  result.textContent =
+  updateView();
+
+  showResult(
     addedProducts.length > 0
-      ? `Добавлено в список: ${addedProducts.join(", ")}`
-      : "Все нужные продукты уже есть в списке.";
+      ? `Добавлено в список: ${addedProducts.map((p) => p.name).join(", ")}`
+      : "Все нужные продукты уже есть в списке.",
+  );
 }
-
-// ===================== Обработчик формы =====================
 
 async function handleSearch(event) {
   // Без этого браузер перезагрузит страницу при отправке формы.
@@ -136,38 +177,48 @@ async function handleSearch(event) {
   try {
     validateInput(userName, dishTitle);
 
-    // Пока идёт запрос, кнопка выключена — ни кликом, ни Enter повторно отправить форму нельзя
+    // Пока идёт запрос, кнопка выключена — повторно отправить форму нельзя.
     searchButton.disabled = true;
-    roleBadge.textContent = "";
-    result.textContent = "Спрашиваю AI, подождите…";
+    showRole(null);
+    showResult("Спрашиваю AI, подождите…");
 
     const { user, answer } = await searchDish(userName, dishTitle);
 
     if (user.role === ROLES.ADMIN) {
       showAdminResult(answer);
     } else {
-      // USER — сценарий ДЗ 28 без изменений: просто показываем ответ.
-      result.textContent = answer;
+      // USER: просто показываем, что использовать из холодильника.
+      showResult(answer);
     }
   } catch (error) {
     console.error("ERROR:", error);
-    result.textContent = "";
+    showResult("");
     showError(error.message);
   } finally {
     searchButton.disabled = false;
   }
 }
 
+// ===================== Подписка на события =====================
+
+addForm.addEventListener("submit", handleAddProduct);
+productList.addEventListener("click", handleProductClick);
+filtersBlock.addEventListener("click", handleFilterClick);
+
+createDraftButton.addEventListener("click", handleCreateDraft);
+saveDraftButton.addEventListener("click", handleSaveDraft);
+cancelDraftButton.addEventListener("click", handleCancelDraft);
+
 // submit срабатывает и по клику на кнопку, и по Enter в любом поле формы.
-form.addEventListener("submit", handleSearch);
+searchForm.addEventListener("submit", handleSearch);
 
 // Escape <dialog> закрывает сам, здесь — только кнопка «Закрыть».
-closeModal.addEventListener("click", () => {
+closeModalButton.addEventListener("click", () => {
   errorModal.close();
 });
 
-// Загружаем продукты холодильника сразу при открытии страницы.
-showFridgeProducts().catch((error) => {
-  console.error("ERROR:", error);
-  showError(error.message);
-});
+// ===================== Старт =====================
+
+renderCategoryOptions();
+updateView();
+runCopyExperiment();

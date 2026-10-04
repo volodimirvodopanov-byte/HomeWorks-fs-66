@@ -1,0 +1,243 @@
+:root {
+  --ink: #23201c;
+  --muted: #6f6659;
+  --line: #d8d0c4;
+  --paper: #faf8f4;
+  --accent: #2f6b4f;
+  --alarm: #a33b2a;
+}
+
+* { box-sizing: border-box; }
+
+/* Атрибут hidden должен скрывать элемент, даже если у него задан display */
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  padding: 2rem 1rem;
+  background: var(--paper);
+  color: var(--ink);
+  font: 16px/1.55 Georgia, "Times New Roman", serif;
+}
+
+.page {
+  max-width: 38rem;
+  margin: 0 auto;
+}
+
+h1 {
+  margin: 0 0 .25rem;
+  font-size: 1.75rem;
+  font-weight: normal;
+}
+
+.subtitle {
+  margin: 0 0 2rem;
+  color: var(--muted);
+  font-size: .95rem;
+}
+
+/* ===== Секции ===== */
+
+.section {
+  margin-bottom: 2.5rem;
+}
+
+.section__title {
+  margin: 0 0 1rem;
+  font-size: 1.15rem;
+  font-weight: normal;
+}
+
+/* ===== Поля формы ===== */
+
+.field {
+  margin-bottom: 1rem;
+}
+
+label {
+  display: block;
+  margin-bottom: .3rem;
+  font-size: .9rem;
+  color: var(--muted);
+}
+
+input,
+select {
+  width: 100%;
+  padding: .6rem .7rem;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: #fff;
+  font: inherit;
+  color: inherit;
+}
+
+/* У select и input разная высота по умолчанию — выравниваем,
+   чтобы поля и кнопка в форме добавления стояли ровно */
+input,
+select,
+.add-form button {
+  height: 2.75rem;
+}
+
+input:focus,
+select:focus,
+button:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Форма добавления: название и категория в ряд, на узком экране — столбиком */
+.add-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: .75rem;
+  align-items: end;
+}
+
+.add-form .field {
+  margin-bottom: 0;
+}
+
+@media (max-width: 30rem) {
+  .add-form {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== Кнопки ===== */
+
+button {
+  padding: .6rem 1.4rem;
+  border: none;
+  border-radius: 3px;
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  background: var(--muted);
+  cursor: default;
+}
+
+/* Второстепенные кнопки: фильтры и черновик */
+.button-secondary {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+}
+
+/* Выбранный фильтр */
+.button-secondary.is-active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin-top: 1rem;
+}
+
+.draft-badge {
+  margin: .75rem 0 0;
+  color: var(--alarm);
+  font-size: .9rem;
+}
+
+/* ===== Список продуктов ===== */
+
+.products {
+  margin: 1.25rem 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.product {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .6rem .25rem;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+}
+
+.product:hover {
+  background: #fff;
+}
+
+.product__category {
+  color: var(--muted);
+  font-size: .9rem;
+}
+
+/* Купленный продукт: зачёркнут и приглушён.
+   JS только переключает класс, весь вид описан здесь. */
+.product--bought .product__name {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+
+.products__empty {
+  padding: .6rem .25rem;
+  color: var(--muted);
+}
+
+/* ===== Помощник AI ===== */
+
+.role-badge {
+  margin: 1.25rem 0 .5rem;
+  font-size: .9rem;
+  color: var(--muted);
+}
+
+/* <pre> по умолчанию не переносит строки и меняет шрифт на моноширинный.
+   pre-wrap сохраняет переносы из ответа AI и переносит длинные строки. */
+.result {
+  min-height: 4rem;
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: #fff;
+  font: inherit;
+  white-space: pre-wrap;
+}
+
+.result:empty {
+  display: none;
+}
+
+/* ===== Модальное окно <dialog> ===== */
+
+.modal {
+  max-width: 26rem;
+  padding: 1.5rem;
+  border: none;
+  border-top: 4px solid var(--alarm);
+  border-radius: 3px;
+  background: #fff;
+  color: var(--ink);
+}
+
+/* Затемнение страницы под открытым окном (только для showModal) */
+.modal::backdrop {
+  background: rgba(35, 32, 28, .45);
+}
+
+.modal__title {
+  margin: 0 0 .6rem;
+  font-size: 1.15rem;
+  color: var(--alarm);
+}
+
+.modal__text {
+  margin: 0 0 1.25rem;
+  white-space: pre-wrap;
+}
