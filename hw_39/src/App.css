@@ -1,0 +1,108 @@
+/* Основной контейнер */
+.app {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-color: #f4f6f8;
+}
+
+/* Шапка */
+.header {
+    background-color: #1e3a5f;
+    color: white;
+    padding: 30px;
+    text-align: center;
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 36px;
+    color: white;
+}
+
+.header p {
+    margin-top: 10px;
+    font-size: 18px;
+}
+
+/* Основная часть */
+.main {
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 30px 20px;
+    flex: 1;
+    box-sizing: border-box;
+}
+
+.Course-count {
+    text-align: center;
+    font-size: 18px;
+    margin-bottom: 30px;
+}
+
+/* Список карточек */
+.course-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Универсальная рамка Card */
+.card {
+    background-color: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    text-align: left;
+}
+
+.card h3 {
+    margin-top: 0;
+    color: #1e3a5f;
+}
+
+.card p {
+    margin: 8px 0;
+}
+
+/* Бейдж доступности */
+.availability-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.badge-open {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.badge-closed {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+/* Премиальный курс */
+.premium-label {
+    color: #b45309;
+    font-weight: bold;
+}
+
+/* Пустой список */
+.empty-message {
+    text-align: center;
+    padding: 30px;
+    background-color: white;
+    border-radius: 10px;
+}
+
+/* Подвал */
+.footer {
+    background-color: #1e3a5f;
+    color: white;
+    text-align: center;
+    padding: 15px;
+}
