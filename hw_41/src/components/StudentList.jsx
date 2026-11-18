@@ -7,7 +7,8 @@ function StudentList() {
     function addStudent() {
         const newStudent = {
             id: crypto.randomUUID(),
-            name: "Sarah"
+            name: "Sarah",
+            isActive: true,
         };
 
         setStudents((prevStudents) => [...prevStudents, newStudent]);
@@ -19,11 +20,23 @@ function StudentList() {
         );
     }
 
+    function toggleStatus(id) {
+        setStudents((prevStudents) =>
+            prevStudents.map((student) =>
+                student.id === id
+                    ? {...student, isActive: !student.isActive}
+                    : student
+            )
+        );
+    }
+
     return (
         <div>
             {students.map((student) => (
                 <p key={student.id}>
                     {student.name}
+                    {student.isActive ? " — Активен " : " — Неактивен "}
+                    <button onClick={() => toggleStatus(student.id)}>Изменить статус</button>
                     <button onClick={() => deleteStudent(student.id)}>Удалить</button>
                 </p>
             ))}
